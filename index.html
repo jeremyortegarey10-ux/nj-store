@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="es"><head><meta charset="utf-8">
+<html lang="es"><head>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#000000"><link rel="apple-touch-icon" href="icon-192.png"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NJ store · Inventario</title>
 <meta name="theme-color" content="#0b0b0b"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><meta name="mobile-web-app-capable" content="yes">
@@ -197,4 +198,6 @@ setForm();render();
  sb.auth.onAuthStateChange((ev,ses)=>{if(ses){setTimeout(start,0)}else if(ev=='SIGNED_OUT'){started=false;D={items:[],sales:[]};sb.removeAllChannels();render();showLogin()}});
  try{const {data}=await sb.auth.getSession();if(data&&data.session)start();else showLogin()}catch(e){showLogin()}
 })();
+
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script></body></html>
