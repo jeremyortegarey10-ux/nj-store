@@ -56,9 +56,10 @@ th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);white-
 <label><span id="lm">Modelo</span><input id="modelo" required placeholder="Nike Air Max"></label>
 <label data-c="ropa">Tipo de prenda<input id="tipo" list="tipos" placeholder="Polerón"><datalist id="tipos"><option value="Polera"><option value="Polerón"><option value="Pantalón"><option value="Short"><option value="Chaqueta"><option value="Buzo"></datalist></label>
 <label data-c="ropa">Género<select id="genero"><option>Hombre</option><option>Mujer</option></select></label>
-<label data-c="zapatillas ropa">Talla<input id="talla" placeholder="42 o M"></label>
+<label data-c="zapatillas ropa accesorios">Talla<input id="talla" placeholder="42 o M"></label>
 <label data-c="zapatillas">Centímetros<input id="cm" type="number" step="0.1" min="0" placeholder="27"></label>
-<label data-c="ropa accesorios">Color<input id="color" placeholder="Negro"></label>
+<label data-c="zapatillas ropa accesorios">Color<input id="color" placeholder="Negro"></label>
+<label>Fecha de compra<input id="compra" type="date"></label>
 <label>Precio costo<input id="costo" type="number" min="0" required></label>
 <label>Precio venta<input id="venta" type="number" min="0" required></label>
 <label>Cantidad<input id="cant" type="number" min="1" value="1" required></label>
@@ -91,8 +92,9 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 let vcat='todo';
 const CN={zapatillas:'Zapatillas',ropa:'Ropa',accesorios:'Accesorios'},IC={zapatillas:'👟',ropa:'👕',accesorios:'🧢'};
 const K=o=>[o.cat||'zapatillas',String(o.modelo).toLowerCase(),o.talla||'',(o.color||'').toLowerCase(),(o.tipo||'').toLowerCase(),o.genero||'',o.costo,o.venta].join('|');
-const det=x=>{const c=x.cat||'zapatillas';if(c=='zapatillas')return esc('Talla '+x.talla+(x.cm?' · '+x.cm+' cm':''));
- if(c=='ropa')return [x.tipo,x.genero,x.talla&&'Talla '+x.talla,x.color].filter(Boolean).map(esc).join(' · ');return esc(x.color||'-')};
+const fc=d=>d&&/^\d{4}-\d\d-\d\d$/.test(d)?d.split('-').reverse().join('-'):'';
+const det=x=>{const c=x.cat||'zapatillas';const cp=fc(x.compra)&&'Compra '+fc(x.compra);if(c=='zapatillas')return [x.talla&&'Talla '+x.talla,x.cm&&x.cm+' cm',x.color,cp].filter(Boolean).map(esc).join(' · ');
+ if(c=='ropa')return [x.tipo,x.genero,x.talla&&'Talla '+x.talla,x.color,cp].filter(Boolean).map(esc).join(' · ');return [x.talla&&'Talla '+x.talla,x.color,cp].filter(Boolean).map(esc).join(' · ')||'-'};
 function render(){
  const q=$('q').value.toLowerCase(),cc=vcat=='todo',inC=x=>cc||(x.cat||'zapatillas')==vcat,
   hay=x=>[x.modelo,x.talla,x.tipo,x.genero,x.color,CN[x.cat||'zapatillas']].join(' ').toLowerCase().includes(q);
@@ -114,11 +116,11 @@ function render(){
 }
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function setForm(){const c=$('cat').value;document.querySelectorAll('#f [data-c]').forEach(l=>l.style.display=l.dataset.c.split(' ').includes(c)?'':'none');
- $('talla').required=c!='accesorios';$('lm').textContent=c=='zapatillas'?'Modelo':'Nombre'}
+ $('talla').required=c=='zapatillas'||c=='ropa';$('lm').textContent=c=='zapatillas'?'Modelo':'Nombre'}
 $('cat').onchange=setForm;
 $('cats').onclick=e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;vcat=k;if(k!='todo'){$('cat').value=k;setForm()}render()};
 $('f').onsubmit=async e=>{e.preventDefault();const f=e.target,c=$('cat').value;
- const o={cat:c,modelo:$('modelo').value.trim(),talla:c=='accesorios'?'':$('talla').value.trim(),cm:c=='zapatillas'?+$('cm').value||0:0,tipo:c=='ropa'?$('tipo').value.trim():'',genero:c=='ropa'?$('genero').value:'',color:c=='zapatillas'?'':$('color').value.trim(),costo:+$('costo').value,venta:+$('venta').value,cant:+$('cant').value};
+ const o={cat:c,modelo:$('modelo').value.trim(),talla:$('talla').value.trim(),cm:c=='zapatillas'?+$('cm').value||0:0,tipo:c=='ropa'?$('tipo').value.trim():'',genero:c=='ropa'?$('genero').value:'',color:$('color').value.trim(),compra:$('compra').value,costo:+$('costo').value,venta:+$('venta').value,cant:+$('cant').value};
  if(fotoData)o.foto=fotoData;
  if(editId){await put('items',{...D.items.find(i=>i.id==editId),...o});editId=null;$('btnAdd').textContent='Agregar'}
  else{const m=D.items.find(i=>K(i)==K(o));
@@ -132,7 +134,7 @@ async function undo(id){const s=D.sales.find(x=>x.id==id);if(!s)return;const {fe
  if(m)await put('items',{...m,cant:m.cant+1});else await put('items',{...r,id:uid(),cant:1});
  await rm('sales',id);}
 function edit(id){const i=D.items.find(x=>x.id==id);editId=id;$('cat').value=i.cat||'zapatillas';setForm();
- ['modelo','talla','cm','tipo','color','costo','venta','cant'].forEach(k=>$(k).value=i[k]??'');$('genero').value=i.genero||'Hombre';
+ ['modelo','talla','cm','tipo','color','compra','costo','venta','cant'].forEach(k=>$(k).value=i[k]??'');$('genero').value=i.genero||'Hombre';
  $('btnAdd').textContent='Guardar cambios';window.scrollTo({top:0,behavior:'smooth'});$('modelo').focus();}
 let delArm=null;
 function del(id,b){if(delArm!==id){delArm=id;b.textContent='¿Seguro?';setTimeout(()=>{if(delArm===id){delArm=null;render()}},3000);return}delArm=null;rm('items',id)}
@@ -144,11 +146,11 @@ $('foto').onchange=e=>{const f=e.target.files[0];if(!f){fotoData=null;$('fst').t
 function zoom(src){const d=document.createElement('div');d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9;padding:16px';d.innerHTML='<img src="'+src+'" style="max-width:100%;max-height:100%;border-radius:12px" alt="">';d.onclick=()=>d.remove();document.body.appendChild(d)}
 function dup(id){const i=D.items.find(x=>x.id==id);if(!i)return;const c=i.cat||'zapatillas';editId=null;$('btnAdd').textContent='Agregar';
  $('cat').value=c;setForm();$('modelo').value=i.modelo;$('talla').value='';$('cm').value='';$('tipo').value=i.tipo||'';$('genero').value=i.genero||'Hombre';
- $('color').value=c=='accesorios'?'':i.color||'';$('costo').value=i.costo;$('venta').value=i.venta;$('cant').value=1;
+ $('color').value=i.color||'';$('compra').value='';$('costo').value=i.costo;$('venta').value=i.venta;$('cant').value=1;
  fotoData=i.foto||null;$('foto').value='';$('fst').textContent=i.foto?'Foto copiada':'';
  window.scrollTo({top:0,behavior:'smooth'});(c=='accesorios'?$('color'):$('talla')).focus();}
 $('exp').onclick=async()=>{if(typeof XLSX=='undefined'){alert('Para generar el Excel necesitas conexión a internet. Conéctate e inténtalo de nuevo.');return}
- const d=x=>({'Categoría':CN[x.cat||'zapatillas'],'Nombre':x.modelo,'Tipo de prenda':x.tipo||'','Género':x.genero||'','Talla':x.talla||'','Centímetros':x.cm||'','Color':x.color||''});
+ const d=x=>({'Categoría':CN[x.cat||'zapatillas'],'Nombre':x.modelo,'Tipo de prenda':x.tipo||'','Género':x.genero||'','Talla':x.talla||'','Centímetros':x.cm||'','Color':x.color||'','Fecha compra':fc(x.compra)});
  const st=D.items.map(i=>({...d(i),'Cantidad':i.cant,'Precio costo':i.costo,'Precio venta':i.venta,'Ganancia por unidad':i.venta-i.costo,'Total costo':i.cant*i.costo,'Total a precio de venta':i.cant*i.venta}));
  const vt=D.sales.map(x=>({'Fecha':x.fecha,...d(x),'Precio costo':x.costo,'Precio venta':x.venta,'Ganancia':x.venta-x.costo}));
  const rs=[['zapatillas','Zapatillas'],['ropa','Ropa'],['accesorios','Accesorios'],['todo','Total']].map(([k,n])=>{const f=x=>k=='todo'||(x.cat||'zapatillas')==k,it=D.items.filter(f),sl=D.sales.filter(f);
